@@ -1,7 +1,10 @@
 export type StoryMedia = {
-  type: "image" | "youtube" | "tiktok";
+  type: "image" | "youtube" | "tiktok" | "video";
   url: string;
 };
+
+export const VIDEO_ACCEPT = "video/mp4,video/webm,video/ogg,video/quicktime";
+export const VIDEO_MAX_MB = 80;
 
 export const YOUTUBE_RE =
   /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;

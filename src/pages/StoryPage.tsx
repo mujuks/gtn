@@ -5,17 +5,32 @@ import StoryImage from "../components/StoryImage";
 import { slugify } from "../data/categories";
 import { tiktokEmbedUrl, youtubeEmbedUrl } from "../data/media";
 import type { Story } from "../data/news";
+import { useVideoUrl } from "../lib/videoStorage";
 import { useNews } from "../store/NewsContext";
 
-function renderMedia(story: Story) {
-  if (!story.media) {
+function UploadedVideo({ story }: { story: Story }) {
+  const src = useVideoUrl(story.media?.type === "video" ? story.media.url : "");
+
+  if (!src) {
     return <StoryImage seed={story.seed} ratio="16 / 9" />;
   }
 
+  return <video src={src} controls playsInline />;
+}
+
+function renderMedia(story: Story) {
   const media = story.media;
+
+  if (!media) {
+    return <StoryImage seed={story.seed} ratio="16 / 9" />;
+  }
 
   if (media.type === "image") {
     return <img src={media.url} alt={story.title} loading="lazy" />;
+  }
+
+  if (media.type === "video") {
+    return <UploadedVideo story={story} />;
   }
 
   if (media.type === "youtube") {

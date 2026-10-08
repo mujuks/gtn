@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Story } from "../data/news";
+import { useVideoUrl } from "../lib/videoStorage";
 import { youtubeThumb } from "../data/media";
 import StoryImage from "./StoryImage";
 
@@ -13,6 +14,40 @@ function PlayIcon() {
     <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
       <path fill="currentColor" d="M8 5.2v13.6L19 12 8 5.2Z" />
     </svg>
+  );
+}
+
+function VideoTile({
+  story,
+  url,
+  ratio,
+  style,
+}: {
+  story: Story;
+  url: string;
+  ratio: string;
+  style: CSSProperties;
+}) {
+  const src = useVideoUrl(url);
+
+  if (!src) {
+    return <StoryImage seed={story.seed} ratio={ratio} />;
+  }
+
+  return (
+    <div className="story-media story-media--video" style={style}>
+      <video
+        className="story-media__video"
+        src={src}
+        muted
+        playsInline
+        loop
+        preload="metadata"
+      />
+      <span className="story-media__play">
+        <PlayIcon />
+      </span>
+    </div>
   );
 }
 
@@ -34,6 +69,12 @@ export default function StoryMedia({ story, ratio = "16 / 9" }: Props) {
         loading="lazy"
         style={style}
       />
+    );
+  }
+
+  if (media.type === "video") {
+    return (
+      <VideoTile story={story} url={media.url} ratio={ratio} style={style} />
     );
   }
 

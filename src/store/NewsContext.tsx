@@ -4,6 +4,11 @@ import { slugify } from "../data/categories";
 import type { StoryMedia } from "../data/media";
 import type { Badge, Placement, Story } from "../data/news";
 import {
+  deleteVideo,
+  isStoredVideo,
+  storedVideoKey,
+} from "../lib/videoStorage";
+import {
   entertainmentStories,
   homeFeed,
   leadStory,
@@ -123,6 +128,10 @@ export function NewsProvider({ children }: { children: ReactNode }) {
   }
 
   function deleteStory(id: string) {
+    const story = customStories.find((item) => item.id === id);
+    if (story?.media?.type === "video" && isStoredVideo(story.media.url)) {
+      deleteVideo(storedVideoKey(story.media.url)).catch(() => {});
+    }
     setCustomStories((prev) => prev.filter((story) => story.id !== id));
     setDeletedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   }

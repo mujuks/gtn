@@ -3,15 +3,16 @@ import type { ChangeEvent, FormEvent } from "react";
 import { Link } from "react-router-dom";
 import AuthPanel from "../components/AuthPanel";
 import { CATEGORIES, slugify } from "../data/categories";
-import { mediaError } from "../data/media";
+import { mediaError, VIDEO_ACCEPT, VIDEO_MAX_MB } from "../data/media";
 import type { StoryMedia } from "../data/media";
 import type { Badge, Placement } from "../data/news";
+import { storeVideo, videoKeyToUrl } from "../lib/videoStorage";
 import { useAuth } from "../store/AuthContext";
 import { useNews } from "../store/NewsContext";
 
 const BADGES: (Badge | "")[] = ["", "live", "video", "analysis", "exclusive"];
 
-type MediaKind = "none" | "image" | "youtube" | "tiktok";
+type MediaKind = "none" | "image" | "video" | "youtube" | "tiktok";
 
 export default function AdminPage() {
   const { user, signOut } = useAuth();
@@ -26,6 +27,7 @@ export default function AdminPage() {
   const [mediaKind, setMediaKind] = useState<MediaKind>("none");
   const [mediaUrl, setMediaUrl] = useState("");
   const [imageData, setImageData] = useState("");
+  const [videoName, setVideoName] = useState("");
   const [mediaNote, setMediaNote] = useState("");
   const [placement, setPlacement] = useState<Placement | "">("");
   const [flash, setFlash] = useState("");
@@ -70,6 +72,31 @@ export default function AdminPage() {
     reader.readAsDataURL(file);
   }
 
+  async function onVideoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type || !file.type.startsWith("video/")) {
+      setMediaNote("Please choose a video file (MP4, WebM, OGG or MOV).");
+      return;
+    }
+    if (file.size > VIDEO_MAX_MB * 1024 * 1024) {
+      setMediaNote(
+        `That video is too large. Keep it under ${VIDEO_MAX_MB} MB.`,
+      );
+      return;
+    }
+    try {
+      const key = await storeVideo(file);
+      setMediaUrl(videoKeyToUrl(key));
+      setVideoName(file.name);
+      setMediaNote("");
+    } catch {
+      setMediaNote(
+        "Could not store that video in this browser. Try a smaller file.",
+      );
+    }
+  }
+
   function resetForm() {
     setTitle("");
     setExcerpt("");
@@ -78,6 +105,7 @@ export default function AdminPage() {
     setMediaKind("none");
     setMediaUrl("");
     setImageData("");
+    setVideoName("");
     setMediaNote("");
     setPlacement("");
   }
@@ -89,6 +117,13 @@ export default function AdminPage() {
         return null;
       }
       return { type: "image", url: imageData };
+    }
+    if (mediaKind === "video") {
+      if (!mediaUrl) {
+        setFlash("Upload a video file to attach, or set Media to None.");
+        return null;
+      }
+      return { type: "video", url: mediaUrl };
     }
     if (isUrlKind) {
       const error = mediaError(mediaUrl, mediaKind);
@@ -246,6 +281,7 @@ export default function AdminPage() {
                 >
                   <option value="none">None</option>
                   <option value="image">Picture</option>
+                  <option value="video">Upload video</option>
                   <option value="youtube">YouTube link</option>
                   <option value="tiktok">TikTok link</option>
                 </select>
@@ -269,6 +305,37 @@ export default function AdminPage() {
                   ) : (
                     <p className="form__hint">
                       Upload a picture file to feature on the story.
+                    </p>
+                  )}
+                  {mediaNote && (
+                    <p className="form__hint form__hint--error">{mediaNote}</p>
+                  )}
+                </>
+              )}
+
+              {mediaKind === "video" && (
+                <>
+                  <input
+                    className="form__file"
+                    type="file"
+                    accept={VIDEO_ACCEPT}
+                    onChange={onVideoChange}
+                    aria-label="Upload a video file"
+                  />
+                  {videoName ? (
+                    <>
+                      <p className="form__hint form__hint--ok">
+                        Ready: {videoName}
+                      </p>
+                      <p className="form__hint">
+                        The video is stored on this device and will play on the
+                        story page.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="form__hint">
+                      Upload an MP4 or WebM file (under {VIDEO_MAX_MB} MB) to
+                      feature on the story.
                     </p>
                   )}
                   {mediaNote && (
