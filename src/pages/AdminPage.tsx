@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link } from "react-router-dom";
 import AuthPanel from "../components/AuthPanel";
-import { CATEGORIES, slugify } from "../data/categories";
+import { CATEGORIES, slugify, slugToLabel } from "../data/categories";
 import { mediaError, VIDEO_ACCEPT, VIDEO_MAX_MB } from "../data/media";
 import type { StoryMedia } from "../data/media";
 import type { Badge, Placement } from "../data/news";
@@ -40,6 +40,7 @@ export default function AdminPage() {
   const [adHeadline, setAdHeadline] = useState("");
   const [adUrl, setAdUrl] = useState("");
   const [adKind, setAdKind] = useState<AdKind>("text");
+  const [adTarget, setAdTarget] = useState("");
   const [adImageData, setAdImageData] = useState("");
   const [adVideoUrl, setAdVideoUrl] = useState("");
   const [adVideoName, setAdVideoName] = useState("");
@@ -235,15 +236,26 @@ export default function AdminPage() {
       }
       media = { type: "video", url: adVideoUrl };
     }
-    addAd({ headline: adHeadline, url: adUrl, media });
-    setFlash("Ad published. It appears in the site's ad slots.");
+    addAd({ headline: adHeadline, url: adUrl, media, target: adTarget });
+    setFlash(
+      adTarget
+        ? `Ad published for ${adTargetLabel(adTarget)}.`
+        : "Ad published. It appears across the site's ad slots.",
+    );
     setAdHeadline("");
     setAdUrl("");
     setAdKind("text");
+    setAdTarget("");
     setAdImageData("");
     setAdVideoUrl("");
     setAdVideoName("");
     setAdMediaNote("");
+  }
+
+  function adTargetLabel(target: string): string {
+    if (target === "home") return "the Home page";
+    if (target === "news") return "the News page";
+    return slugToLabel(target);
   }
 
   return (
@@ -566,6 +578,26 @@ export default function AdminPage() {
               <option value="video">Video</option>
             </select>
           </label>
+          <label>
+            <span>Show on</span>
+            <select
+              value={adTarget}
+              onChange={(e) => setAdTarget(e.target.value)}
+            >
+              <option value="">All sections</option>
+              <option value="home">Home (For You)</option>
+              <option value="news">News page</option>
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={slugify(cat)}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="form__hint">
+            Pick a section to show this ad there, or leave as All sections to
+            fill every slot.
+          </p>
 
           {adKind === "image" && (
             <>
@@ -639,6 +671,12 @@ export default function AdminPage() {
                           ? "Video"
                           : "Text"}
                       {ad.url && <> · {ad.url}</>}
+                      {ad.target && (
+                        <em className="admin__mine">
+                          {" "}
+                          · {adTargetLabel(ad.target)}
+                        </em>
+                      )}
                     </span>
                   </div>
                   <button

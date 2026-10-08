@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useVideoUrl } from "../lib/videoStorage";
 import { useAds } from "../store/AdsContext";
 import type { Ad } from "../store/AdsContext";
@@ -7,6 +8,15 @@ type Props = {
   label?: string;
   className?: string;
 };
+
+function currentSection(pathname: string): string | undefined {
+  if (pathname === "/") return "home";
+  if (pathname === "/news") return "news";
+  if (pathname.startsWith("/category/")) {
+    return decodeURIComponent(pathname.split("/")[2] ?? "");
+  }
+  return undefined;
+}
 
 function pickIndex(length: number): number {
   return Math.floor(Math.random() * length);
@@ -100,8 +110,17 @@ export default function AdSlot({
   className = "",
 }: Props) {
   const { ads } = useAds();
-  const [index] = useState(() => (ads.length > 0 ? pickIndex(ads.length) : 0));
-  const ad = ads.length > 0 ? ads[index % ads.length] : undefined;
+  const location = useLocation();
+  const section = currentSection(location.pathname);
+
+  const matching = ads.filter(
+    (ad) => !ad.target || !section || ad.target === section,
+  );
+  const pool = matching.length > 0 ? matching : ads;
+  const [index] = useState(() =>
+    pool.length > 0 ? pickIndex(pool.length) : 0,
+  );
+  const ad = pool.length > 0 ? pool[index % pool.length] : undefined;
 
   return (
     <div className={`ad ${className}${ad ? " ad--creative" : ""}`} role="note">

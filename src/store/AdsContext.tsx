@@ -19,12 +19,14 @@ export type Ad = {
   headline: string;
   url?: string;
   media?: AdMedia;
+  target?: string;
 };
 
 export type NewAdInput = {
   headline: string;
   url?: string;
   media?: AdMedia;
+  target?: string;
 };
 
 type AdsContextValue = {
@@ -69,6 +71,7 @@ export function AdsProvider({ children }: { children: ReactNode }) {
       headline: input.headline.trim(),
       url: input.url ? normalizeUrl(input.url) : undefined,
       media: input.media,
+      target: input.target || undefined,
     };
     setAds((prev) => [ad, ...prev]);
     return ad;
