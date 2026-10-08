@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { slugify } from "../data/categories";
 import type { StoryMedia } from "../data/media";
-import type { Badge, Story } from "../data/news";
+import type { Badge, Placement, Story } from "../data/news";
 import {
   entertainmentStories,
   homeFeed,
@@ -31,10 +31,12 @@ export type NewStoryInput = {
   author?: string;
   badge?: Badge;
   media?: StoryMedia;
+  placement?: Placement;
 };
 
 type NewsContextValue = {
   stories: Story[];
+  newsStories: Story[];
   customStories: Story[];
   deletedIds: string[];
   addStory: (input: NewStoryInput) => Story;
@@ -98,6 +100,11 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     return [...remaining, ...customStories];
   }, [deletedIds, customStories]);
 
+  const newsStories = useMemo(
+    () => stories.filter((story) => story.placement !== "for-you"),
+    [stories],
+  );
+
   function addStory(input: NewStoryInput): Story {
     const story: Story = {
       id: `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -109,6 +116,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
       badge: input.badge,
       author: input.author?.trim() || "GTN Newsroom",
       media: input.media,
+      placement: input.placement,
     };
     setCustomStories((prev) => [story, ...prev]);
     return story;
@@ -124,11 +132,15 @@ export function NewsProvider({ children }: { children: ReactNode }) {
   }
 
   function categoryStories(slug: string) {
-    return stories.filter((story) => slugify(story.category) === slug);
+    return stories.filter(
+      (story) =>
+        slugify(story.category) === slug && story.placement !== "for-you",
+    );
   }
 
   const value: NewsContextValue = {
     stories,
+    newsStories,
     customStories,
     deletedIds,
     addStory,

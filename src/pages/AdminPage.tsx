@@ -5,7 +5,7 @@ import AuthPanel from "../components/AuthPanel";
 import { CATEGORIES, slugify } from "../data/categories";
 import { mediaError } from "../data/media";
 import type { StoryMedia } from "../data/media";
-import type { Badge } from "../data/news";
+import type { Badge, Placement } from "../data/news";
 import { useAuth } from "../store/AuthContext";
 import { useNews } from "../store/NewsContext";
 
@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [mediaUrl, setMediaUrl] = useState("");
   const [imageData, setImageData] = useState("");
   const [mediaNote, setMediaNote] = useState("");
+  const [placement, setPlacement] = useState<Placement | "">("");
   const [flash, setFlash] = useState("");
   const [query, setQuery] = useState("");
 
@@ -78,6 +79,7 @@ export default function AdminPage() {
     setMediaUrl("");
     setImageData("");
     setMediaNote("");
+    setPlacement("");
   }
 
   function buildMedia(): StoryMedia | null {
@@ -115,6 +117,7 @@ export default function AdminPage() {
       author,
       badge: badge || undefined,
       media: media ?? undefined,
+      placement: placement || undefined,
     });
     setFlash(`Published to ${category}. It now appears across the site.`);
     resetForm();
@@ -209,6 +212,20 @@ export default function AdminPage() {
                 </select>
               </label>
             </div>
+            <label>
+              <span>Show on</span>
+              <select
+                value={placement}
+                onChange={(e) => setPlacement(e.target.value as Placement | "")}
+              >
+                <option value="">Everywhere</option>
+                <option value="for-you">For You page only</option>
+                <option value="news">News &amp; other pages only</option>
+              </select>
+            </label>
+            <p className="form__hint">
+              For You = home feed; other pages = News and category sections.
+            </p>
             <label>
               <span>Author</span>
               <input
@@ -330,6 +347,12 @@ export default function AdminPage() {
                           ? "picture"
                           : story.media.type}
                       </em>
+                    )}
+                    {story.placement === "for-you" && (
+                      <em className="admin__mine"> · For You</em>
+                    )}
+                    {story.placement === "news" && (
+                      <em className="admin__mine"> · News</em>
                     )}
                     {customStories.some((item) => item.id === story.id) && (
                       <em className="admin__mine"> yours</em>

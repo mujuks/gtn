@@ -32,7 +32,7 @@ export default function ForYouPage() {
   const trio = topTrioStories.filter((story) => !deletedIds.includes(story.id));
   const feed = [
     ...homeFeed.filter((story) => !deletedIds.includes(story.id)),
-    ...customStories,
+    ...customStories.filter((story) => story.placement !== "news"),
   ];
 
   const feedContent: ReactNode[] = [];

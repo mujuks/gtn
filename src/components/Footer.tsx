@@ -27,7 +27,7 @@ const aboutLinks = [
 
 const sectionLinks = [
   "News",
-  "Citizen Originals",
+  "GTN Originals",
   "Wananchi Reporting",
   "Business",
   "Sports",

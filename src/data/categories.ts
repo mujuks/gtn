@@ -1,6 +1,6 @@
 export const CATEGORIES: string[] = [
   "News",
-  "Citizen Originals",
+  "GTN Originals",
   "Wananchi Reporting",
   "Business",
   "Sports",

@@ -2,6 +2,8 @@ import type { StoryMedia } from "./media";
 
 export type Badge = "live" | "video" | "analysis" | "exclusive";
 
+export type Placement = "for-you" | "news";
+
 export type Story = {
   id: string;
   title: string;
@@ -12,6 +14,7 @@ export type Story = {
   badge?: Badge;
   author?: string;
   media?: StoryMedia;
+  placement?: Placement;
 };
 
 export const breaking: string[] = [

@@ -28,7 +28,7 @@ function matches(story: Story, term: string): boolean {
 }
 
 export default function NewsPage() {
-  const { stories } = useNews();
+  const { newsStories } = useNews();
   const [params, setParams] = useSearchParams();
 
   const term = (params.get("q") ?? "").trim().toLowerCase();
@@ -36,8 +36,8 @@ export default function NewsPage() {
 
   const lead = searching
     ? undefined
-    : stories.find((story) => story.id === "lead-1");
-  const feed = stories.filter(
+    : newsStories.find((story) => story.id === "lead-1");
+  const feed = newsStories.filter(
     (story) => story.id !== "lead-1" && matches(story, term),
   );
 
