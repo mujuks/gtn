@@ -1,3 +1,4 @@
+/* oxlint-disable react/only-export-components */
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -5,6 +6,7 @@ import {
   isStoredVideo,
   storedVideoKey,
 } from "../lib/videoStorage";
+import { normalizeUrl } from "../lib/url";
 
 const LS_ADS = "gtn.custom-ads-v1";
 
@@ -46,12 +48,6 @@ function readAds(): Ad[] {
   } catch {
     return [];
   }
-}
-
-export function normalizeUrl(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
 export function AdsProvider({ children }: { children: ReactNode }) {

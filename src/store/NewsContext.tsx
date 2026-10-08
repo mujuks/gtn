@@ -1,33 +1,18 @@
+/* oxlint-disable react/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { slugify } from "../data/categories";
 import type { StoryMedia } from "../data/media";
 import type { Badge, Placement, Story } from "../data/news";
+import { allStories } from "../data/news";
 import {
   deleteVideo,
   isStoredVideo,
   storedVideoKey,
 } from "../lib/videoStorage";
-import {
-  entertainmentStories,
-  homeFeed,
-  leadStory,
-  opinionPieces,
-  topTrioStories,
-  trendingStories,
-} from "../data/news";
 
 const LS_CUSTOM = "gtn.custom-stories-v1";
 const LS_DELETED = "gtn.deleted-stories-v1";
-
-export const baseStories: Story[] = [
-  leadStory,
-  ...topTrioStories,
-  ...trendingStories,
-  ...homeFeed,
-  ...entertainmentStories,
-  ...opinionPieces,
-];
 
 export type NewStoryInput = {
   title: string;
@@ -99,7 +84,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
   }, [deletedIds]);
 
   const stories = useMemo(() => {
-    const remaining = baseStories.filter(
+    const remaining = allStories.filter(
       (story) => !deletedIds.includes(story.id),
     );
     return [...remaining, ...customStories];

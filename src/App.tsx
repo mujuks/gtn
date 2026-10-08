@@ -13,22 +13,29 @@ import StoryPage from "./pages/StoryPage";
 import TvPage from "./pages/TvPage";
 
 export default function App() {
-  const [query, setQuery] = useState("");
   const location = useLocation();
+  const [entry, setEntry] = useState<{ path: string; query: string }>({
+    path: location.pathname,
+    query: "",
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setQuery("");
   }, [location.pathname]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setQuery("");
+      if (event.key === "Escape") {
+        setEntry({ path: location.pathname, query: "" });
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [location.pathname]);
 
+  const query = entry.path === location.pathname ? entry.query : "";
+  const setQuery = (value: string) =>
+    setEntry({ path: location.pathname, query: value });
   const searching = query.trim().length > 1;
 
   return (

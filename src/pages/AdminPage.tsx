@@ -289,6 +289,25 @@ export default function AdminPage() {
         })}
       </div>
 
+      <div className="stats">
+        <div className="stats__item">
+          <b>{stories.length}</b>
+          <span>Total stories</span>
+        </div>
+        <div className="stats__item">
+          <b>{customStories.length}</b>
+          <span>Published by you</span>
+        </div>
+        <div className="stats__item">
+          <b>{deletedIds.length}</b>
+          <span>Hidden from site</span>
+        </div>
+        <div className="stats__item">
+          <b>{ads.length}</b>
+          <span>Live ads</span>
+        </div>
+      </div>
+
       {flash && <p className="flash">{flash}</p>}
 
       <div className="admin">

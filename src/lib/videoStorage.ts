@@ -81,28 +81,29 @@ export function deleteVideo(key: string): Promise<void> {
 }
 
 export function useVideoUrl(url?: string): string | undefined {
-  const [src, setSrc] = useState<string | undefined>(url);
+  const [src, setSrc] = useState<string | undefined>(() =>
+    url && isStoredVideo(url) ? undefined : url,
+  );
 
   useEffect(() => {
-    if (!url || !isStoredVideo(url)) {
-      setSrc(url);
-      return;
-    }
+    if (!url || !isStoredVideo(url)) return;
     let cancelled = false;
-    let objectUrl: string | undefined;
-    setSrc(undefined);
     loadVideo(storedVideoKey(url))
       .then((blob) => {
         if (cancelled) return;
-        objectUrl = URL.createObjectURL(blob);
-        setSrc(objectUrl);
+        const objectUrl = URL.createObjectURL(blob);
+        setSrc((prev) => {
+          if (prev && prev.startsWith("blob:")) {
+            URL.revokeObjectURL(prev);
+          }
+          return objectUrl;
+        });
       })
       .catch(() => {
         if (!cancelled) setSrc(undefined);
       });
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [url]);
 
