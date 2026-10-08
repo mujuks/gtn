@@ -1,0 +1,359 @@
+import { useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import { Link } from "react-router-dom";
+import AuthPanel from "../components/AuthPanel";
+import { CATEGORIES, slugify } from "../data/categories";
+import { mediaError } from "../data/media";
+import type { StoryMedia } from "../data/media";
+import type { Badge } from "../data/news";
+import { useAuth } from "../store/AuthContext";
+import { useNews } from "../store/NewsContext";
+
+const BADGES: (Badge | "")[] = ["", "live", "video", "analysis", "exclusive"];
+
+type MediaKind = "none" | "image" | "youtube" | "tiktok";
+
+export default function AdminPage() {
+  const { user, signOut } = useAuth();
+  const { stories, customStories, deletedIds, addStory, deleteStory } =
+    useNews();
+
+  const [title, setTitle] = useState("");
+  const [excerpt, setExcerpt] = useState("");
+  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [author, setAuthor] = useState("");
+  const [badge, setBadge] = useState<Badge | "">("");
+  const [mediaKind, setMediaKind] = useState<MediaKind>("none");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [imageData, setImageData] = useState("");
+  const [mediaNote, setMediaNote] = useState("");
+  const [flash, setFlash] = useState("");
+  const [query, setQuery] = useState("");
+
+  if (!user) {
+    return (
+      <main className="container main">
+        <div className="cat-head">
+          <h1>News Manager</h1>
+          <span>Sign in to add, publish and remove stories</span>
+        </div>
+        <AuthPanel />
+      </main>
+    );
+  }
+
+  const term = query.trim().toLowerCase();
+  const visible = stories.filter(
+    (story) =>
+      !term ||
+      story.title.toLowerCase().includes(term) ||
+      story.category.toLowerCase().includes(term),
+  );
+
+  const isUrlKind = mediaKind === "youtube" || mediaKind === "tiktok";
+  const urlError =
+    isUrlKind && mediaUrl.trim() ? mediaError(mediaUrl, mediaKind) : null;
+
+  function onFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMediaNote("Please choose an image file (JPG, PNG, GIF or WebP).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageData(reader.result as string);
+      setMediaNote("");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetForm() {
+    setTitle("");
+    setExcerpt("");
+    setAuthor("");
+    setBadge("");
+    setMediaKind("none");
+    setMediaUrl("");
+    setImageData("");
+    setMediaNote("");
+  }
+
+  function buildMedia(): StoryMedia | null {
+    if (mediaKind === "image") {
+      if (!imageData) {
+        setFlash("Choose a picture to attach, or set Media to None.");
+        return null;
+      }
+      return { type: "image", url: imageData };
+    }
+    if (isUrlKind) {
+      const error = mediaError(mediaUrl, mediaKind);
+      if (error) {
+        setFlash(error);
+        return null;
+      }
+      return { type: mediaKind, url: mediaUrl.trim() };
+    }
+    return null;
+  }
+
+  function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!title.trim()) {
+      setFlash("Please enter a news title.");
+      return;
+    }
+    const media = buildMedia();
+    if (!media && mediaKind !== "none") return;
+
+    addStory({
+      title,
+      excerpt,
+      category,
+      author,
+      badge: badge || undefined,
+      media: media ?? undefined,
+    });
+    setFlash(`Published to ${category}. It now appears across the site.`);
+    resetForm();
+  }
+
+  function onDelete(id: string) {
+    deleteStory(id);
+    setFlash("Story removed from the site.");
+  }
+
+  return (
+    <main className="container main">
+      <div className="cat-head cat-head--split">
+        <div>
+          <h1>News Manager</h1>
+          <span>Signed in as {user}. Add, publish and remove stories</span>
+        </div>
+        <button className="auth__signout" type="button" onClick={signOut}>
+          Sign Out
+        </button>
+      </div>
+
+      <div className="chips">
+        {CATEGORIES.map((cat) => {
+          const count = stories.filter(
+            (story) => story.category === cat,
+          ).length;
+          return (
+            <Link
+              className="chip"
+              key={cat}
+              to={`/category/${slugify(cat)}`}
+              title={`View ${cat} stories`}
+            >
+              <span>{cat}</span>
+              <b>{count}</b>
+            </Link>
+          );
+        })}
+      </div>
+
+      {flash && <p className="flash">{flash}</p>}
+
+      <div className="admin">
+        <section className="admin__panel" aria-label="Add story">
+          <h2>Add a story</h2>
+          <form className="form" onSubmit={onSubmit}>
+            <label>
+              <span>Title</span>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Headline of the story"
+                required
+              />
+            </label>
+            <label>
+              <span>Excerpt (optional)</span>
+              <textarea
+                value={excerpt}
+                onChange={(e) => setExcerpt(e.target.value)}
+                placeholder="A short summary shown on the story page"
+                rows={3}
+              />
+            </label>
+            <div className="admin__row">
+              <label>
+                <span>Category</span>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Badge (optional)</span>
+                <select
+                  value={badge}
+                  onChange={(e) => setBadge(e.target.value as Badge | "")}
+                >
+                  {BADGES.map((value) => (
+                    <option key={value || "none"} value={value}>
+                      {value ? value : "None"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <label>
+              <span>Author</span>
+              <input
+                type="text"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder="GTN Newsroom"
+              />
+            </label>
+
+            <fieldset className="form__fieldset">
+              <legend>Media</legend>
+              <label>
+                <span>Attach</span>
+                <select
+                  value={mediaKind}
+                  onChange={(e) => setMediaKind(e.target.value as MediaKind)}
+                >
+                  <option value="none">None</option>
+                  <option value="image">Picture</option>
+                  <option value="youtube">YouTube link</option>
+                  <option value="tiktok">TikTok link</option>
+                </select>
+              </label>
+
+              {mediaKind === "image" && (
+                <>
+                  <input
+                    className="form__file"
+                    type="file"
+                    accept="image/*"
+                    onChange={onFileChange}
+                    aria-label="Choose a picture"
+                  />
+                  {imageData ? (
+                    <img
+                      className="form__preview"
+                      src={imageData}
+                      alt="Selected picture preview"
+                    />
+                  ) : (
+                    <p className="form__hint">
+                      Upload a picture file to feature on the story.
+                    </p>
+                  )}
+                  {mediaNote && (
+                    <p className="form__hint form__hint--error">{mediaNote}</p>
+                  )}
+                </>
+              )}
+
+              {isUrlKind && (
+                <>
+                  <input
+                    type="text"
+                    value={mediaUrl}
+                    onChange={(e) => setMediaUrl(e.target.value)}
+                    placeholder={
+                      mediaKind === "youtube"
+                        ? "https://www.youtube.com/watch?v=…"
+                        : "https://www.tiktok.com/@user/video/…"
+                    }
+                  />
+                  {mediaUrl.trim() ? (
+                    <p
+                      className={
+                        urlError
+                          ? "form__hint form__hint--error"
+                          : "form__hint form__hint--ok"
+                      }
+                    >
+                      {urlError ??
+                        "Link looks valid — it will play on the story page."}
+                    </p>
+                  ) : (
+                    <p className="form__hint">
+                      Paste a {mediaKind === "youtube" ? "YouTube" : "TikTok"}{" "}
+                      link to embed the video on the story.
+                    </p>
+                  )}
+                </>
+              )}
+            </fieldset>
+
+            <button className="btn" type="submit">
+              Publish story
+            </button>
+          </form>
+        </section>
+
+        <section className="admin__panel" aria-label="Manage stories">
+          <h2>All stories</h2>
+          <label className="form__search">
+            <span>Filter</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by title or category"
+            />
+          </label>
+          <p className="admin__count">
+            Showing {visible.length} of {stories.length} stories
+          </p>
+          <ul className="admin__list">
+            {visible.map((story) => (
+              <li className="admin__item" key={story.id}>
+                <div>
+                  <Link className="admin__item-title" to={`/story/${story.id}`}>
+                    {story.title}
+                  </Link>
+                  <span className="admin__item-meta">
+                    {story.category} · {story.time}
+                    {story.media && (
+                      <em className="admin__mine">
+                        {" "}
+                        ·{" "}
+                        {story.media.type === "image"
+                          ? "picture"
+                          : story.media.type}
+                      </em>
+                    )}
+                    {customStories.some((item) => item.id === story.id) && (
+                      <em className="admin__mine"> yours</em>
+                    )}
+                  </span>
+                </div>
+                <button
+                  className="admin__delete"
+                  type="button"
+                  onClick={() => onDelete(story.id)}
+                  aria-label={`Delete ${story.title}`}
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+          {deletedIds.length > 0 && (
+            <p className="admin__note">
+              Deleted stories stay removed on this device only.
+            </p>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}
