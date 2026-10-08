@@ -7,17 +7,21 @@ import { mediaError, VIDEO_ACCEPT, VIDEO_MAX_MB } from "../data/media";
 import type { StoryMedia } from "../data/media";
 import type { Badge, Placement } from "../data/news";
 import { storeVideo, videoKeyToUrl } from "../lib/videoStorage";
+import { useAds } from "../store/AdsContext";
+import type { AdMedia } from "../store/AdsContext";
 import { useAuth } from "../store/AuthContext";
 import { useNews } from "../store/NewsContext";
 
 const BADGES: (Badge | "")[] = ["", "live", "video", "analysis", "exclusive"];
 
 type MediaKind = "none" | "image" | "video" | "youtube" | "tiktok";
+type AdKind = "text" | "image" | "video";
 
 export default function AdminPage() {
   const { user, signOut } = useAuth();
   const { stories, customStories, deletedIds, addStory, deleteStory } =
     useNews();
+  const { ads, addAd, deleteAd } = useAds();
 
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
@@ -32,6 +36,14 @@ export default function AdminPage() {
   const [placement, setPlacement] = useState<Placement | "">("");
   const [flash, setFlash] = useState("");
   const [query, setQuery] = useState("");
+
+  const [adHeadline, setAdHeadline] = useState("");
+  const [adUrl, setAdUrl] = useState("");
+  const [adKind, setAdKind] = useState<AdKind>("text");
+  const [adImageData, setAdImageData] = useState("");
+  const [adVideoUrl, setAdVideoUrl] = useState("");
+  const [adVideoName, setAdVideoName] = useState("");
+  const [adMediaNote, setAdMediaNote] = useState("");
 
   if (!user) {
     return (
@@ -161,6 +173,77 @@ export default function AdminPage() {
   function onDelete(id: string) {
     deleteStory(id);
     setFlash("Story removed from the site.");
+  }
+
+  function onAdImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setAdMediaNote("Please choose an image file (JPG, PNG, GIF or WebP).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAdImageData(reader.result as string);
+      setAdMediaNote("");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function onAdVideoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type || !file.type.startsWith("video/")) {
+      setAdMediaNote("Please choose a video file (MP4, WebM, OGG or MOV).");
+      return;
+    }
+    if (file.size > VIDEO_MAX_MB * 1024 * 1024) {
+      setAdMediaNote(
+        `That video is too large. Keep it under ${VIDEO_MAX_MB} MB.`,
+      );
+      return;
+    }
+    try {
+      const key = await storeVideo(file);
+      setAdVideoUrl(videoKeyToUrl(key));
+      setAdVideoName(file.name);
+      setAdMediaNote("");
+    } catch {
+      setAdMediaNote(
+        "Could not store that video in this browser. Try a smaller file.",
+      );
+    }
+  }
+
+  function onSubmitAd(event: FormEvent) {
+    event.preventDefault();
+    if (!adHeadline.trim()) {
+      setFlash("Please enter an ad headline.");
+      return;
+    }
+    let media: AdMedia | undefined;
+    if (adKind === "image") {
+      if (!adImageData) {
+        setFlash("Choose a photo for the ad, or switch the type to Text.");
+        return;
+      }
+      media = { type: "image", url: adImageData };
+    } else if (adKind === "video") {
+      if (!adVideoUrl) {
+        setFlash("Upload a video for the ad, or switch the type to Text.");
+        return;
+      }
+      media = { type: "video", url: adVideoUrl };
+    }
+    addAd({ headline: adHeadline, url: adUrl, media });
+    setFlash("Ad published. It appears in the site's ad slots.");
+    setAdHeadline("");
+    setAdUrl("");
+    setAdKind("text");
+    setAdImageData("");
+    setAdVideoUrl("");
+    setAdVideoName("");
+    setAdMediaNote("");
   }
 
   return (
@@ -444,6 +527,139 @@ export default function AdminPage() {
           )}
         </section>
       </div>
+
+      <section
+        className="admin__panel admin__panel--full"
+        aria-label="Manage ads"
+      >
+        <h2>Manage Ads</h2>
+        <form className="form" onSubmit={onSubmitAd}>
+          <div className="admin__row">
+            <label>
+              <span>Ad headline</span>
+              <input
+                type="text"
+                value={adHeadline}
+                onChange={(e) => setAdHeadline(e.target.value)}
+                placeholder="e.g. GTN Radio — now on FM 96.1"
+                required
+              />
+            </label>
+            <label>
+              <span>Destination URL (optional)</span>
+              <input
+                type="text"
+                value={adUrl}
+                onChange={(e) => setAdUrl(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </label>
+          </div>
+          <label>
+            <span>Ad type</span>
+            <select
+              value={adKind}
+              onChange={(e) => setAdKind(e.target.value as AdKind)}
+            >
+              <option value="text">Text link</option>
+              <option value="image">Photo</option>
+              <option value="video">Video</option>
+            </select>
+          </label>
+
+          {adKind === "image" && (
+            <>
+              <input
+                className="form__file"
+                type="file"
+                accept="image/*"
+                onChange={onAdImageChange}
+                aria-label="Choose an ad photo"
+              />
+              {adImageData ? (
+                <img
+                  className="form__preview"
+                  src={adImageData}
+                  alt="Ad photo preview"
+                />
+              ) : (
+                <p className="form__hint">
+                  Upload a photo to show as the ad banner.
+                </p>
+              )}
+              {adMediaNote && (
+                <p className="form__hint form__hint--error">{adMediaNote}</p>
+              )}
+            </>
+          )}
+
+          {adKind === "video" && (
+            <>
+              <input
+                className="form__file"
+                type="file"
+                accept={VIDEO_ACCEPT}
+                onChange={onAdVideoChange}
+                aria-label="Upload an ad video"
+              />
+              {adVideoName ? (
+                <p className="form__hint form__hint--ok">
+                  Ready: {adVideoName}
+                </p>
+              ) : (
+                <p className="form__hint">
+                  Upload a short MP4 or WebM clip (under {VIDEO_MAX_MB} MB).
+                </p>
+              )}
+              {adMediaNote && (
+                <p className="form__hint form__hint--error">{adMediaNote}</p>
+              )}
+            </>
+          )}
+
+          <button className="btn" type="submit">
+            Publish ad
+          </button>
+        </form>
+
+        {ads.length > 0 ? (
+          <>
+            <p className="admin__count">
+              {ads.length} ad{ads.length === 1 ? "" : "s"} live
+            </p>
+            <ul className="admin__list">
+              {ads.map((ad) => (
+                <li className="admin__item" key={ad.id}>
+                  <div>
+                    <span className="admin__item-title">{ad.headline}</span>
+                    <span className="admin__item-meta">
+                      {ad.media?.type === "image"
+                        ? "Photo"
+                        : ad.media?.type === "video"
+                          ? "Video"
+                          : "Text"}
+                      {ad.url && <> · {ad.url}</>}
+                    </span>
+                  </div>
+                  <button
+                    className="admin__delete"
+                    type="button"
+                    onClick={() => deleteAd(ad.id)}
+                    aria-label={`Delete ad ${ad.headline}`}
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="admin__note">
+            No ads yet. Add text, photo or video ads — they will appear in the
+            site's ad slots.
+          </p>
+        )}
+      </section>
     </main>
   );
 }

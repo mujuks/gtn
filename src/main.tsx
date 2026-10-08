@@ -5,14 +5,17 @@ import "./index.css";
 import App from "./App.tsx";
 import { AuthProvider } from "./store/AuthContext.tsx";
 import { NewsProvider } from "./store/NewsContext.tsx";
+import { AdsProvider } from "./store/AdsContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <NewsProvider>
-          <App />
-        </NewsProvider>
+        <AdsProvider>
+          <NewsProvider>
+            <App />
+          </NewsProvider>
+        </AdsProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
