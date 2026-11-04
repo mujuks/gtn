@@ -2113,6 +2113,13 @@
   border: 0;
   display: block;
 }
+.story__embed--image { aspect-ratio: auto; }
+.story__embed--image > img {
+  height: auto;
+  object-fit: contain;
+  object-position: top center;
+  background: #f3f6f9;
+}
 
 .story__embed video {
   width: 100%;
@@ -2449,7 +2456,7 @@
 .pin__meta time, .card__meta time { color: #788597; font-size: 11px; font-weight: 500; }
 .card__meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 10px; margin-top: 8px; }
 .card__meta .card__byline { margin-top: 0; font-size: 12px; }
-.story-media--img { height: auto; object-fit: cover; }
+.story-media--img { height: auto; object-fit: cover; object-position: center top; }
 @media (max-width: 600px) {
   .pin__meta { margin-top: 8px; font-size: 11px; }
   .card__meta { gap: 3px 8px; }
